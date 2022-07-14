@@ -1,9 +1,11 @@
 package ru.skelantros.wikisearch
 
-case class Quote(createTimestamp: String,
-                 timestamp: String,
+import java.sql.Timestamp
+
+case class Quote(createTimestamp: Timestamp,
+                 timestamp: Timestamp,
                  language: String,
                  wiki: String,
-                 category: String,
+                 category: Seq[String],
                  title: String,
                  auxiliaryTest: Seq[String])
