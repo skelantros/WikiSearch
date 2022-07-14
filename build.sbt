@@ -4,11 +4,11 @@ version := "0.1"
 
 scalaVersion := "2.13.8"
 
-lazy val http4sVersion = "0.23.12"
+lazy val http4sVersion = "0.23.13"
 lazy val http4sDependencies = Seq(
   "org.http4s" %% "http4s-dsl" % http4sVersion,
-  "org.http4s" %% "http4s-blaze-server" % http4sVersion,
-  "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+  "org.http4s" %% "http4s-ember-server" % http4sVersion,
+  "org.http4s" %% "http4s-ember-client" % http4sVersion,
   "org.http4s" %% "http4s-circe" % http4sVersion,
   "io.circe" %% "circe-generic" % "0.14.1",
   "io.circe" %% "circe-literal" % "0.14.1"
