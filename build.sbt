@@ -9,9 +9,14 @@ lazy val http4sDependencies = Seq(
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-ember-server" % http4sVersion,
   "org.http4s" %% "http4s-ember-client" % http4sVersion,
-  "org.http4s" %% "http4s-circe" % http4sVersion,
-  "io.circe" %% "circe-generic" % "0.14.1",
-  "io.circe" %% "circe-literal" % "0.14.1"
+  "org.http4s" %% "http4s-circe" % http4sVersion
+)
+
+lazy val circeVersion = "0.14.1"
+lazy val circeDependencies = Seq(
+  "io.circe" %% "circe-generic" % circeVersion,
+  "io.circe" %% "circe-literal" % circeVersion,
+  "io.circe" %% "circe-parser" % circeVersion
 )
 
 lazy val doobieVersion = "1.0.0-RC2"
@@ -27,4 +32,4 @@ lazy val scalatestDependencies = Seq(
   "org.scalatest" %% "scalatest" % scalatestVersion % "test"
 )
 
-libraryDependencies ++= http4sDependencies ++ doobieDependencies ++ scalatestDependencies
+libraryDependencies ++= http4sDependencies ++ doobieDependencies ++ scalatestDependencies ++ circeDependencies

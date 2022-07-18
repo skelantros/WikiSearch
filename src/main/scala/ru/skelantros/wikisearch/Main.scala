@@ -3,13 +3,14 @@ package ru.skelantros.wikisearch
 import cats.effect.{ExitCode, IO, IOApp}
 import org.http4s.HttpApp
 import org.http4s.ember.server.EmberServerBuilder
-
-import scala.concurrent.ExecutionContext.global
+import org.http4s.implicits._
+import com.comcast.ip4s._
 
 object Main extends IOApp {
-  val app: HttpApp[IO] = ???
-  private val port = ???
-  private val host = ???
+  private val port = port"8080"
+  private val host = ipv4"127.0.0.1"
+
+  private val app: HttpApp[IO] = ???
 
   override def run(args: List[String]): IO[ExitCode] =
     EmberServerBuilder
