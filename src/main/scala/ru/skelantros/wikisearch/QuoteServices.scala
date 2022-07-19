@@ -85,14 +85,14 @@ object QuoteServices {
   object PrettyParam extends OptionalValidatingQueryParamDecoderMatcher[Boolean]("pretty")
   object CategoryParam extends QueryParamDecoderMatcher[String]("category")
 
-  private case class SimplifiedQuote(auxiliary_text: Seq[String], create_timestamp: Long, timestamp: Long)
+  private case class SimplifiedQuote(auxiliary_text: Seq[String], category: Seq[String], create_timestamp: Long, timestamp: Long)
 
   implicit lazy val jsonEncoder: Encoder[Quote] =
-    Encoder[SimplifiedQuote].contramap(q => SimplifiedQuote(q.auxiliaryText, q.createTimestamp.getTime, q.timestamp.getTime))
+    Encoder[SimplifiedQuote].contramap(q => SimplifiedQuote(q.auxiliaryText, q.category, q.createTimestamp.getTime, q.timestamp.getTime))
   implicit def decoder[F[_] : Concurrent]: EntityDecoder[F, Quote] = jsonOf[F, Quote]
 
-  case class Update(new_title: Option[String], auxiliary_text: Option[Seq[String]], category: Option[Seq[String]]) {
-    def toQuoteUpdate(title: String): QuoteUpdate = QuoteUpdate(title, new_title, auxiliary_text, category)
+  case class Update(new_title: Option[String], auxiliary_text: Option[Seq[String]], category: Option[Seq[String]], language: Option[String], wiki: Option[String]) {
+    def toQuoteUpdate(title: String): QuoteUpdate = QuoteUpdate(title, new_title, auxiliary_text, category, wiki, language)
   }
   object Update {
     implicit def encoder[F[_] : Concurrent]: EntityEncoder[F, Update] = jsonEncoderOf

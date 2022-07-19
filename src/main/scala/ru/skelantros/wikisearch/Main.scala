@@ -18,7 +18,11 @@ object Main extends IOApp {
   implicit val database: DbQuote[IO] = new DoobieDbQuote
   val services = new QuoteServices[IO]
 
-  private val app: HttpApp[IO] = (services.quoteByTitle <+> services.quotesByCategory <+> services.categoryStats).orNotFound
+  private val app: HttpApp[IO] =
+    (
+      services.quoteByTitle <+> services.quotesByCategory <+> services.categoryStats <+>
+      services.updateQuote
+    ).orNotFound
 
   override def run(args: List[String]): IO[ExitCode] =
     EmberServerBuilder

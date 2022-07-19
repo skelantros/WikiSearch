@@ -19,6 +19,6 @@ trait DbQuote[F[_]] {
 
 object DbQuote {
   case class CategoryStats(name: String, count: Int)
-  case class QuoteUpdate(title: String, newTitle: Option[String], auxiliaryText: Option[Seq[String]], categories: Option[Seq[String]])
+  case class QuoteUpdate(title: String, newTitle: Option[String], auxiliaryText: Option[Seq[String]], categories: Option[Seq[String]], wiki: Option[String], language: Option[String])
   case class QuoteCreate(title: String, auxiliaryText: Seq[String], categories: Seq[String], wiki: String, language: String)
 }
