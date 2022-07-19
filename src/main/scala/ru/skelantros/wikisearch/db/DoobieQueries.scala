@@ -7,7 +7,7 @@ import doobie.implicits._
 import doobie._
 import doobie.implicits.javasql._
 import doobie.util.log.LogHandler
-import ru.skelantros.wikisearch.Quote
+import ru.skelantros.wikisearch.Article
 import ru.skelantros.wikisearch.db.Database._
 import cats.implicits._
 
@@ -16,18 +16,18 @@ object DoobieQueries {
 
   private def now: Timestamp = Timestamp.from(Instant.now())
 
-  type QuoteNote = (Int, String, Timestamp, Timestamp, String, String)
-  implicit class QuoteNoteOps(x: QuoteNote) {
-    def toQuote(categories: Seq[String], auxTexts: Seq[String]): Quote =
-      Quote(x._3, x._4, x._6, x._5, categories, x._2, auxTexts)
+  type ArticleNote = (Int, String, Timestamp, Timestamp, String, String)
+  implicit class ArticleNoteOps(x: ArticleNote) {
+    def toArticle(categories: Seq[String], auxTexts: Seq[String]): Article =
+      Article(x._3, x._4, x._6, x._5, categories, x._2, auxTexts)
     def title: String = x._2
     def id: Int = x._1
   }
 
-  def quoteByTitleQuery(title: String): Query0[QuoteNote] =
+  def articleByTitleQuery(title: String): Query0[ArticleNote] =
     sql"select * from quote where lower(title) = lower($title)".query
 
-  def categoriesOfQuoteQuery(title: String): Query0[String] =
+  def categoriesOfArticleQuery(title: String): Query0[String] =
     sql"""
          select c.name
          from quote as q join quote_to_category as qc on qc.quote_id = q.id
@@ -35,7 +35,7 @@ object DoobieQueries {
          where lower(q.title) = lower($title)
        """.query
 
-  def auxTextsOfQuoteQuery(title: String): Query0[String] =
+  def auxTextsOfArticleQuery(title: String): Query0[String] =
     sql"""
          select aux_text
          from quote as q join auxiliary_text as at on at.quote_id = q.id
@@ -43,7 +43,7 @@ object DoobieQueries {
          order by at.create_timestamp
        """.query
 
-  def quotesByCategoryQuery(category: String): Query0[QuoteNote] =
+  def articlesByCategoryQuery(category: String): Query0[ArticleNote] =
     sql"""
          select q.id, q.title, q.create_timestamp, q.update_timestamp, q.wiki, q.language
          from quote as q join quote_to_category as qc on qc.quote_id = q.id
@@ -67,8 +67,8 @@ object DoobieQueries {
          group by c.name
        """.query
 
-  def updateQuoteQuery(update: QuoteUpdate): Update0 = {
-    val QuoteUpdate(oldTitle, newTitle, _, _, wiki, language) = update
+  def updateArticleQuery(update: ArticleUpdate): Update0 = {
+    val ArticleUpdate(oldTitle, newTitle, _, _, wiki, language) = update
 
     val titleUpdate = newTitle.map(t => fr"title = $t")
     val wikiUpdate = wiki.map(w => fr"wiki = $w")
@@ -91,23 +91,23 @@ object DoobieQueries {
              values ($id, $now, $auxiliaryText)
            """.update
 
-  def updateQuoteTextQueries(id: Int, auxTexts: Seq[String]): Seq[Update0] =
+  def updateArticleTextQueries(id: Int, auxTexts: Seq[String]): Seq[Update0] =
     sql"delete from auxiliary_text where quote_id = $id".update +: auxTexts.map(insertAuxTextsQuery(_, id))
 
 
   def addCategoryQuery(category: String): Update0 =
     sql"insert into category(name) values ($category)".update
 
-  def updateQuoteCategoryQueries(id: Int, categoriesIds: Seq[Int]): Seq[Update0] =
+  def updateArticleCategoryQueries(id: Int, categoriesIds: Seq[Int]): Seq[Update0] =
     sql"delete from quote_to_category where quote_id = $id".update +:
     categoriesIds.map(catId => sql"insert into quote_to_category(quote_id, category_id) values ($id, $catId)".update)
 
-  def updateQuoteTimestampQuery(title: String): Update0 =
+  def updateArticleTimestampQuery(title: String): Update0 =
     sql"update quote set update_timestamp = $now where lower(title) = lower($title)".update
 
-  def deleteQuoteQuery(title: String): Update0 =
+  def deleteArticleQuery(title: String): Update0 =
     sql"delete from quote where title = $title".update
 
-  def createQuoteQuery(title: String, wiki: String, language: String): Update0 =
+  def createArticleQuery(title: String, wiki: String, language: String): Update0 =
     sql"insert into quote(title, wiki, language, create_timestamp, update_timestamp) values ($title, $wiki, $language, $now, $now)".update
 }

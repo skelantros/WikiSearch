@@ -16,12 +16,12 @@ object Main extends IOApp {
 
   implicit val transactor: Transactor[IO] = TransactorImpl[IO]
   implicit val database: Database[IO] = new DoobieDatabase
-  val services = new QuoteServices[IO]
+  val services = new Services[IO]
 
   private val app: HttpApp[IO] =
     (
-      services.quoteByTitle <+> services.quotesByCategory <+> services.categoryStats <+>
-      services.updateQuote <+> services.createQuote <+> services.removeQuote
+      services.articleByTitle <+> services.articlesByCategory <+> services.categoryStats <+>
+      services.updateArticle <+> services.createArticle <+> services.removeArticle
     ).orNotFound
 
   override def run(args: List[String]): IO[ExitCode] =

@@ -3,7 +3,7 @@ package ru.skelantros.wikisearch.db
 import cats.effect.MonadCancelThrow
 import doobie.free.connection.ConnectionIO
 import doobie.util.transactor.Transactor
-import ru.skelantros.wikisearch.Quote
+import ru.skelantros.wikisearch.Article
 import doobie.implicits._
 import cats.implicits._
 import DoobieQueries._
@@ -16,30 +16,28 @@ class DoobieDatabase[F[_] : MonadCancelThrow](implicit val transactor: Transacto
       case Right(x) => behavior(x)
     }.transact(transactor)
 
-  override def addQuote(quote: Quote): F[Result[Quote]] = ???
+  private def articleNoteConn(title: String): ConnectionIO[Option[ArticleNote]] =
+    articleByTitleQuery(title).option
 
-  private def quoteNoteConn(title: String): ConnectionIO[Option[QuoteNote]] =
-    quoteByTitleQuery(title).option
-
-  override def findQuote(title: String): F[Result[Quote]] =
-    processConnection[Option[Quote], Quote] {
-      case None => Result.mistake[Quote](s"Quote with title '$title' is not found.")
+  override def findArticle(title: String): F[Result[Article]] =
+    processConnection[Option[Article], Article] {
+      case None => Result.mistake[Article](s"Article with title '$title' is not found.")
       case Some(x) => Result(x)
     }(
       for {
-        quoteBase <- quoteNoteConn(title)
-        categories <- categoriesOfQuoteQuery(title).to[List]
-        auxTexts <- auxTextsOfQuoteQuery(title).to[List]
-      } yield quoteBase.map(_.toQuote(categories, auxTexts))
+        articleBase <- articleNoteConn(title)
+        categories <- categoriesOfArticleQuery(title).to[List]
+        auxTexts <- auxTextsOfArticleQuery(title).to[List]
+      } yield articleBase.map(_.toArticle(categories, auxTexts))
     )
 
-  override def quotesByCategory(category: String): F[Result[Seq[Quote]]] =
-    processConnection[Seq[Quote], Seq[Quote]](Result(_))(
+  override def articlesByCategory(category: String): F[Result[Seq[Article]]] =
+    processConnection[Seq[Article], Seq[Article]](Result(_))(
       for {
-        quotesBase <- quotesByCategoryQuery(category).to[List]
-        categories <- quotesBase.map(x => categoriesOfQuoteQuery(x.title).to[List]).sequence
-        auxTexts <- quotesBase.map(x => auxTextsOfQuoteQuery(x.title).to[List]).sequence
-      } yield quotesBase.indices.map(i => quotesBase(i).toQuote(categories(i), auxTexts(i)))
+        articlesBase <- articlesByCategoryQuery(category).to[List]
+        categories <- articlesBase.map(x => categoriesOfArticleQuery(x.title).to[List]).sequence
+        auxTexts <- articlesBase.map(x => auxTextsOfArticleQuery(x.title).to[List]).sequence
+      } yield articlesBase.indices.map(i => articlesBase(i).toArticle(categories(i), auxTexts(i)))
     )
 
   private def findOrCreateCategoryConn(category: String): ConnectionIO[Int] =
@@ -48,55 +46,55 @@ class DoobieDatabase[F[_] : MonadCancelThrow](implicit val transactor: Transacto
       res <- curIdOpt.fold(createCategoryQuery(category).withUniqueGeneratedKeys[Int]("id"))(_.pure[ConnectionIO])
     } yield res
 
-  private def updateExistingQuoteConn(update: QuoteUpdate, note: QuoteNote): ConnectionIO[Quote] =
+  private def updateExistingArticleConn(update: ArticleUpdate, note: ArticleNote): ConnectionIO[Article] =
     for {
-      _ <- updateQuoteQuery(update).run
+      _ <- updateArticleQuery(update).run
       catsIds <- update.categories.fold(Seq[Int]().pure[ConnectionIO])(_.map(findOrCreateCategoryConn).sequence)
-      _ <- if(catsIds.nonEmpty) updateQuoteCategoryQueries(note.id, catsIds).map(_.run).sequence else ().pure[ConnectionIO]
-      _ <- update.auxiliaryText.fold(().pure[ConnectionIO])(updateQuoteTextQueries(note.id, _).map(_.run).sequence.void)
+      _ <- if(catsIds.nonEmpty) updateArticleCategoryQueries(note.id, catsIds).map(_.run).sequence else ().pure[ConnectionIO]
+      _ <- update.auxiliaryText.fold(().pure[ConnectionIO])(updateArticleTextQueries(note.id, _).map(_.run).sequence.void)
 
       updatedTitle = update.newTitle.getOrElse(update.title)
-      updatedQuoteBase <- quoteByTitleQuery(updatedTitle).unique
-      updatedCategories <- categoriesOfQuoteQuery(updatedTitle).to[List]
-      updatedAuxTexts <- auxTextsOfQuoteQuery(updatedTitle).to[List]
-    } yield updatedQuoteBase.toQuote(updatedCategories, updatedAuxTexts)
+      updatedArticleBase <- articleByTitleQuery(updatedTitle).unique
+      updatedCategories <- categoriesOfArticleQuery(updatedTitle).to[List]
+      updatedAuxTexts <- auxTextsOfArticleQuery(updatedTitle).to[List]
+    } yield updatedArticleBase.toArticle(updatedCategories, updatedAuxTexts)
 
-  override def updateQuote(update: QuoteUpdate): F[Result[Quote]] =
-    processConnection[Option[Quote], Quote] {
-      case None => Result.mistake[Quote](s"Quote with title '${update.title}' is not found.")
+  override def updateArticle(update: ArticleUpdate): F[Result[Article]] =
+    processConnection[Option[Article], Article] {
+      case None => Result.mistake[Article](s"Article with title '${update.title}' is not found.")
       case Some(x) => Result(x)
     }(
       for {
-        quoteNote <- quoteNoteConn(update.title)
-        res <- quoteNote.map(updateExistingQuoteConn(update, _)).sequence
-        _ <- res.map(x => updateQuoteTimestampQuery(x.title).run).sequence
+        articleNote <- articleNoteConn(update.title)
+        res <- articleNote.map(updateExistingArticleConn(update, _)).sequence
+        _ <- res.map(x => updateArticleTimestampQuery(x.title).run).sequence
       } yield res
     )
 
-  override def removeQuote(title: String): F[Result[Quote]] =
-    processConnection[Option[Quote], Quote] {
-      case None => Result.mistake[Quote](s"Quote with title '$title' is not found.")
+  override def removeArticle(title: String): F[Result[Article]] =
+    processConnection[Option[Article], Article] {
+      case None => Result.mistake[Article](s"Article with title '$title' is not found.")
       case Some(x) => Result(x)
     }(
       for {
-        quoteNote <- quoteNoteConn(title)
-        auxTexts <- auxTextsOfQuoteQuery(title).to[Seq]
-        categories <- categoriesOfQuoteQuery(title).to[Seq]
-        _ <- quoteNote.map(x => deleteQuoteQuery(x.title).run).sequence
-      } yield quoteNote.map(_.toQuote(categories, auxTexts))
+        articleNote <- articleNoteConn(title)
+        auxTexts <- auxTextsOfArticleQuery(title).to[Seq]
+        categories <- categoriesOfArticleQuery(title).to[Seq]
+        _ <- articleNote.map(x => deleteArticleQuery(x.title).run).sequence
+      } yield articleNote.map(_.toArticle(categories, auxTexts))
     )
-  override def createQuote(create: QuoteCreate): F[Result[Quote]] = {
-    val QuoteCreate(title, auxText, cats, wiki, lang) = create
+  override def createArticle(create: ArticleCreate): F[Result[Article]] = {
+    val ArticleCreate(title, auxText, cats, wiki, lang) = create
 
-    processConnection[Quote, Quote](Result(_))(
+    processConnection[Article, Article](Result(_))(
       for {
-        id <- createQuoteQuery(title, wiki, lang).withUniqueGeneratedKeys[Int]("id")
-        _ <- updateQuoteTextQueries(id, auxText).map(_.run).sequence
+        id <- createArticleQuery(title, wiki, lang).withUniqueGeneratedKeys[Int]("id")
+        _ <- updateArticleTextQueries(id, auxText).map(_.run).sequence
         catsIds <- cats.map(findOrCreateCategoryConn).sequence
-        _ <- updateQuoteCategoryQueries(id, catsIds).map(_.run).sequence
+        _ <- updateArticleCategoryQueries(id, catsIds).map(_.run).sequence
 
-        quoteBase <- quoteByTitleQuery(title).unique
-      } yield quoteBase.toQuote(cats, auxText)
+        articleBase <- articleByTitleQuery(title).unique
+      } yield articleBase.toArticle(cats, auxText)
     )
   }
 

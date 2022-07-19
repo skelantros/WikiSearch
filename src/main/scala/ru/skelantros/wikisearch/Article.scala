@@ -6,18 +6,18 @@ import java.text.SimpleDateFormat
 import io.circe.Decoder
 import io.circe.generic.semiauto._
 
-case class Quote(createTimestamp: Timestamp,
-                 timestamp: Timestamp,
-                 language: String,
-                 wiki: String,
-                 category: Seq[String],
-                 title: String,
-                 auxiliaryText: Seq[String])
+case class Article(createTimestamp: Timestamp,
+                   timestamp: Timestamp,
+                   language: String,
+                   wiki: String,
+                   category: Seq[String],
+                   title: String,
+                   auxiliaryText: Seq[String])
 
-object Quote {
+object Article {
   private val formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
-  private case class QuoteSnakeCase(create_timestamp: Timestamp,
+  private case class ArticleSnakeCase(create_timestamp: Timestamp,
                                     timestamp: Timestamp,
                                     language: String,
                                     wiki: String,
@@ -27,7 +27,7 @@ object Quote {
 
   implicit val timestampDecoder: Decoder[Timestamp] =
     Decoder.decodeString.map(s => new Timestamp(formatter.parse(s).getTime))
-  implicit val decoder: Decoder[Quote] = deriveDecoder[QuoteSnakeCase].map {
-    case QuoteSnakeCase(ct, t, l, w, c, tit, at) => Quote(ct, t, l, w, c, tit, at)
+  implicit val decoder: Decoder[Article] = deriveDecoder[ArticleSnakeCase].map {
+    case ArticleSnakeCase(ct, t, l, w, c, tit, at) => Article(ct, t, l, w, c, tit, at)
   }
 }
