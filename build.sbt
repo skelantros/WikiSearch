@@ -33,3 +33,5 @@ lazy val scalatestDependencies = Seq(
 )
 
 libraryDependencies ++= http4sDependencies ++ doobieDependencies ++ scalatestDependencies ++ circeDependencies
+
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"

@@ -43,4 +43,10 @@ class DoobieDbQuote[F[_] : MonadCancelThrow](implicit val transactor: Transactor
   override def removeQuote(quote: Quote): F[Result[Quote]] = ???
 
   override def removeQuote(title: String): F[Result[Quote]] = ???
+
+  override def categories: F[Result[Seq[String]]] =
+    processConnection[Seq[String], Seq[String]](Result(_))(categoriesQuery.to[Seq])
+
+  override def categoriesStats: F[Result[Seq[DbQuote.CategoryStats]]] =
+    processConnection[Seq[DbQuote.CategoryStats], Seq[DbQuote.CategoryStats]](Result(_))(categoriesStatsQuery.to[Seq])
 }

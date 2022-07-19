@@ -5,9 +5,13 @@ import java.sql.Timestamp
 import doobie.implicits._
 import doobie._
 import doobie.implicits.javasql._
+import doobie.util.log.LogHandler
 import ru.skelantros.wikisearch.Quote
+import ru.skelantros.wikisearch.db.DbQuote.CategoryStats
 
 object DoobieQueries {
+  private implicit val log: LogHandler = LogHandler.jdkLogHandler
+
   type QuoteNote = (Int, String, Timestamp, Timestamp, String, String)
   implicit class QuoteNoteOps(x: QuoteNote) {
     def toQuote(categories: Seq[String], auxTexts: Seq[String]): Quote =
@@ -40,5 +44,15 @@ object DoobieQueries {
          from quote as q join quote_to_category as qc on qc.quote_id = q.id
          join category as c on c.id = qc.category_id
          where lower(c.name) = lower($category)
+       """.query
+
+  def categoriesQuery: Query0[String] =
+    sql"select name from category".query
+
+  def categoriesStatsQuery: Query0[CategoryStats] =
+    sql"""
+         select c.name, count(qtc.quote_id) from
+         category as c join quote_to_category as qtc on c.id = qtc.category_id
+         group by c.name
        """.query
 }
