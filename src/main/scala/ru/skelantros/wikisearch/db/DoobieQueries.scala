@@ -8,7 +8,7 @@ import doobie._
 import doobie.implicits.javasql._
 import doobie.util.log.LogHandler
 import ru.skelantros.wikisearch.Quote
-import ru.skelantros.wikisearch.db.DbQuote.{CategoryStats, QuoteUpdate}
+import ru.skelantros.wikisearch.db.DbQuote._
 import cats.implicits._
 
 object DoobieQueries {
@@ -104,4 +104,10 @@ object DoobieQueries {
 
   def updateQuoteTimestampQuery(title: String): Update0 =
     sql"update quote set update_timestamp = $now where lower(title) = lower($title)".update
+
+  def deleteQuoteQuery(title: String): Update0 =
+    sql"delete from quote where title = $title".update
+
+  def createQuoteQuery(title: String, wiki: String, language: String): Update0 =
+    sql"insert into quote(title, wiki, language, create_timestamp, update_timestamp) values ($title, $wiki, $language, $now, $now)".update
 }

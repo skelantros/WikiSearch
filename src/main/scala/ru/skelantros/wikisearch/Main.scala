@@ -21,7 +21,7 @@ object Main extends IOApp {
   private val app: HttpApp[IO] =
     (
       services.quoteByTitle <+> services.quotesByCategory <+> services.categoryStats <+>
-      services.updateQuote
+      services.updateQuote <+> services.createQuote <+> services.removeQuote
     ).orNotFound
 
   override def run(args: List[String]): IO[ExitCode] =

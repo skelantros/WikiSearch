@@ -74,9 +74,32 @@ class DoobieDbQuote[F[_] : MonadCancelThrow](implicit val transactor: Transactor
       } yield res
     )
 
-  override def removeQuote(title: String): F[Result[Quote]] = ???
+  override def removeQuote(title: String): F[Result[Quote]] =
+    processConnection[Option[Quote], Quote] {
+      case None => Result.mistake[Quote](s"Quote with title '$title' is not found.")
+      case Some(x) => Result(x)
+    }(
+      for {
+        quoteNote <- quoteNoteConn(title)
+        auxTexts <- auxTextsOfQuoteQuery(title).to[Seq]
+        categories <- categoriesOfQuoteQuery(title).to[Seq]
+        _ <- quoteNote.map(x => deleteQuoteQuery(x.title).run).sequence
+      } yield quoteNote.map(_.toQuote(categories, auxTexts))
+    )
+  override def createQuote(create: QuoteCreate): F[Result[Quote]] = {
+    val QuoteCreate(title, auxText, cats, wiki, lang) = create
 
-  override def createQuote(create: QuoteCreate): F[Result[Quote]] = ???
+    processConnection[Quote, Quote](Result(_))(
+      for {
+        id <- createQuoteQuery(title, wiki, lang).withUniqueGeneratedKeys[Int]("id")
+        _ <- updateQuoteTextQueries(id, auxText).map(_.run).sequence
+        catsIds <- cats.map(findOrCreateCategoryConn).sequence
+        _ <- updateQuoteCategoryQueries(id, catsIds).map(_.run).sequence
+
+        quoteBase <- quoteByTitleQuery(title).unique
+      } yield quoteBase.toQuote(cats, auxText)
+    )
+  }
 
   override def categories: F[Result[Seq[String]]] =
     processConnection[Seq[String], Seq[String]](Result(_))(categoriesQuery.to[Seq])
