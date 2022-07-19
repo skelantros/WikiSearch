@@ -8,7 +8,7 @@ import doobie._
 import doobie.implicits.javasql._
 import doobie.util.log.LogHandler
 import ru.skelantros.wikisearch.Quote
-import ru.skelantros.wikisearch.db.DbQuote._
+import ru.skelantros.wikisearch.db.Database._
 import cats.implicits._
 
 object DoobieQueries {

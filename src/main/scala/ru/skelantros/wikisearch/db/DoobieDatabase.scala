@@ -7,10 +7,9 @@ import ru.skelantros.wikisearch.Quote
 import doobie.implicits._
 import cats.implicits._
 import DoobieQueries._
-import DbQuote._
-import cats.data.{EitherT, OptionT}
+import Database._
 
-class DoobieDbQuote[F[_] : MonadCancelThrow](implicit val transactor: Transactor[F]) extends DbQuote[F] {
+class DoobieDatabase[F[_] : MonadCancelThrow](implicit val transactor: Transactor[F]) extends Database[F] {
   private def processConnection[A, B](behavior: A => Result[B])(x: ConnectionIO[A]): F[Result[B]] =
     x.attempt.map {
       case Left(t) => Result.thr[B](t)

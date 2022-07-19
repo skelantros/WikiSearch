@@ -8,14 +8,14 @@ import com.comcast.ip4s._
 import cats.implicits._
 import doobie.util.transactor.Transactor
 import org.http4s.server.middleware.Logger
-import ru.skelantros.wikisearch.db.{DbQuote, DoobieDbQuote}
+import ru.skelantros.wikisearch.db.{Database, DoobieDatabase}
 
 object Main extends IOApp {
   private val port = port"8080"
   private val host = ipv4"127.0.0.1"
 
   implicit val transactor: Transactor[IO] = TransactorImpl[IO]
-  implicit val database: DbQuote[IO] = new DoobieDbQuote
+  implicit val database: Database[IO] = new DoobieDatabase
   val services = new QuoteServices[IO]
 
   private val app: HttpApp[IO] =

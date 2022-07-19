@@ -1,28 +1,23 @@
 package ru.skelantros.wikisearch
 
-import cats.Monad
-import cats.data.{EitherT, ValidatedNel}
+import cats.data.ValidatedNel
 import cats.effect.Concurrent
-import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, ParseFailure, Response}
-import org.http4s.dsl.Http4sDsl
-import ru.skelantros.wikisearch.db.{Mistake, Result, Thr}
 import cats.implicits._
 import io.circe.Encoder
-import io.circe.syntax._
-import io.circe._
-import org.http4s.circe._
 import io.circe.generic.auto._
+import io.circe.syntax._
 import org.http4s.circe.CirceEntityEncoder._
+import org.http4s.circe._
+import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.impl.{OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher}
-import ru.skelantros.wikisearch.db.DbQuote
-import ru.skelantros.wikisearch.db.DbQuote.{QuoteCreate, QuoteUpdate}
+import org.http4s._
+import ru.skelantros.wikisearch.db.Database._
+import ru.skelantros.wikisearch.db._
 
-class QuoteServices[F[_] : Concurrent](implicit db: DbQuote[F]) {
+class QuoteServices[F[_] : Concurrent](implicit db: Database[F]) {
   private val dsl = new Http4sDsl[F] {}
-  import dsl._
   import QuoteServices._
-
-  private val wikiRoot = Root / "wiki"
+  import dsl._
 
   type EntEnc[A] = EntityEncoder[F, A]
   private def response[A, B : EntEnc](f: A => B)(result: Result[A]): F[Response[F]] =
@@ -43,22 +38,22 @@ class QuoteServices[F[_] : Concurrent](implicit db: DbQuote[F]) {
     ))
 
   lazy val quoteByTitle = HttpRoutes.of[F] {
-    case GET -> wikiRoot / "quote" / title :? PrettyParam(isPretty) =>
+    case GET -> Root / "quote" / title :? PrettyParam(isPretty) =>
       db.findQuote(title).flatMap(prettyResponse[Quote](isPretty))
   }
 
   lazy val quotesByCategory = HttpRoutes.of[F] {
-    case GET -> wikiRoot / "quote" :? CategoryParam(category) :? PrettyParam(isPretty) =>
+    case GET -> Root / "quote" :? CategoryParam(category) :? PrettyParam(isPretty) =>
       db.quotesByCategory(category).flatMap(prettyResponse[Seq[Quote]](isPretty))
   }
 
   lazy val categoryStats = HttpRoutes.of[F] {
-    case GET -> wikiRoot / "categories" =>
+    case GET -> Root / "categories" =>
       db.categoriesStats.flatMap(response(identity))
   }
 
   lazy val updateQuote = HttpRoutes.of[F] {
-    case req @ POST -> wikiRoot / "quote" / title =>
+    case req @ POST -> Root / "quote" / title =>
       for {
         updateInfo <- req.as[Update]
         dbResult <- db.updateQuote(updateInfo.toQuoteUpdate(title))
@@ -67,12 +62,12 @@ class QuoteServices[F[_] : Concurrent](implicit db: DbQuote[F]) {
   }
 
   lazy val removeQuote = HttpRoutes.of[F] {
-    case DELETE -> wikiRoot / "quote" / title =>
+    case DELETE -> Root / "quote" / title =>
       db.removeQuote(title).flatMap(response(identity))
   }
 
   lazy val createQuote = HttpRoutes.of[F] {
-    case req @ PUT -> wikiRoot / "quote" =>
+    case req @ PUT -> Root / "quote" =>
       for {
         createInfo <- req.as[Create]
         dbResult <- db.createQuote(createInfo.toQuoteCreate)
@@ -87,8 +82,9 @@ object QuoteServices {
 
   private case class SimplifiedQuote(auxiliary_text: Seq[String], category: Seq[String], create_timestamp: Long, timestamp: Long)
 
-  implicit lazy val jsonEncoder: Encoder[Quote] =
+  implicit lazy val simplifiedJsonEncoder: Encoder[Quote] =
     Encoder[SimplifiedQuote].contramap(q => SimplifiedQuote(q.auxiliaryText, q.category, q.createTimestamp.getTime, q.timestamp.getTime))
+
   implicit def decoder[F[_] : Concurrent]: EntityDecoder[F, Quote] = jsonOf[F, Quote]
 
   case class Update(new_title: Option[String], auxiliary_text: Option[Seq[String]], category: Option[Seq[String]], language: Option[String], wiki: Option[String]) {

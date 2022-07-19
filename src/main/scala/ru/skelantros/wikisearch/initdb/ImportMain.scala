@@ -9,7 +9,7 @@ import io.circe.parser.decode
 
 import scala.io.Source
 
-object InitDb extends IOApp {
+object ImportMain extends IOApp {
   def fileResource[F[_] : Sync](f: File): Resource[F, Source] =
     Resource.fromAutoCloseable(Sync[F].pure(Source.fromFile(f, "UTF8")))
 
@@ -31,6 +31,6 @@ object InitDb extends IOApp {
       jsons <- parseJsonsFromFile[IO](srcFile)
       uniqueQuotes = jsons.distinctBy(_.title.toLowerCase)
       _ <- IO.println(uniqueQuotes.size)
-      _ <- InitDbDoobie.finalConnection2(uniqueQuotes)
+      _ <- ImportDoobie(uniqueQuotes)
     } yield ExitCode.Success
 }
