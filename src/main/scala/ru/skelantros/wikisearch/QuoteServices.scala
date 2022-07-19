@@ -5,7 +5,7 @@ import cats.data.ValidatedNel
 import cats.effect.Concurrent
 import org.http4s.{EntityDecoder, EntityEncoder, HttpRoutes, ParseFailure, Response}
 import org.http4s.dsl.Http4sDsl
-import ru.skelantros.wikisearch.DbQuote.{Mistake, Result, Thr}
+import ru.skelantros.wikisearch.db.{Mistake, Result, Thr}
 import cats.implicits._
 import io.circe.Encoder
 import io.circe.syntax._
@@ -14,6 +14,7 @@ import org.http4s.circe._
 import io.circe.generic.auto._
 import org.http4s.circe.CirceEntityEncoder._
 import org.http4s.dsl.impl.{OptionalValidatingQueryParamDecoderMatcher, QueryParamDecoderMatcher}
+import ru.skelantros.wikisearch.db.DbQuote
 
 class QuoteServices[F[_] : Monad](implicit db: DbQuote[F]) {
   private val dsl = new Http4sDsl[F] {}

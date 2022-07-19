@@ -6,19 +6,13 @@ import java.time.Instant
 import cats.effect.IO
 import doobie.util.transactor.Transactor
 import doobie.{ConnectionIO, Update0}
-import ru.skelantros.wikisearch.Quote
+import ru.skelantros.wikisearch.{Quote, TransactorImpl}
 import doobie.implicits._
 import cats.implicits._
 import doobie.implicits.javasql._
 
 object InitDbDoobie {
-  private val username = System.getenv("WIKISEARCH_USERNAME")
-  private val password = System.getenv("WIKISEARCH_PASSWORD")
-  private val dbName = System.getenv("WIKISEARCH_DATABASE")
-
-  private val transactor = Transactor.fromDriverManager[IO] (
-    "org.postgresql.Driver", s"jdbc:postgresql:$dbName", username, password
-  )
+  private val transactor = TransactorImpl[IO]
 
   private def insertQuoteQuery(quote: Quote): Update0 = {
     val Quote(ct, t, l, w, c, title, at) = quote

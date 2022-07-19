@@ -5,12 +5,19 @@ import org.http4s.HttpApp
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits._
 import com.comcast.ip4s._
+import cats.implicits._
+import doobie.util.transactor.Transactor
+import ru.skelantros.wikisearch.db.{DbQuote, DoobieDbQuote}
 
 object Main extends IOApp {
   private val port = port"8080"
   private val host = ipv4"127.0.0.1"
 
-  private val app: HttpApp[IO] = ???
+  implicit val transactor: Transactor[IO] = TransactorImpl[IO]
+  implicit val database: DbQuote[IO] = new DoobieDbQuote
+  val services = new QuoteServices[IO]
+
+  private val app: HttpApp[IO] = (services.quoteByTitle <+> services.quotesByCategory).orNotFound
 
   override def run(args: List[String]): IO[ExitCode] =
     EmberServerBuilder
