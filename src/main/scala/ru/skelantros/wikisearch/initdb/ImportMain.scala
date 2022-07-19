@@ -9,6 +9,7 @@ import io.circe.parser.decode
 
 import scala.io.Source
 
+// Приложение для импорта данных из дампа в БД
 object ImportMain extends IOApp {
   def fileResource[F[_] : Sync](f: File): Resource[F, Source] =
     Resource.fromAutoCloseable(Sync[F].pure(Source.fromFile(f, "UTF8")))

@@ -21,6 +21,7 @@ class Services[F[_] : Concurrent](implicit db: Database[F]) {
   import dsl._
 
   type EntEnc[A] = EntityEncoder[F, A]
+  // функция высшего порядка, создающая HTTP-response на основе результата вычислений из БД
   private def response[A, B : EntEnc](f: A => B)(result: Result[A]): F[Response[F]] =
     result.fold(
       {
@@ -30,6 +31,7 @@ class Services[F[_] : Concurrent](implicit db: Database[F]) {
       res => Ok(f(res), "Content-Type" -> "application/json")
     )
 
+  // Функции для осуществления отформатированного вывода статей
   private def prettyResponse[A : Encoder](isPretty: Boolean)(result: Result[A]) =
     response[A, String](x => if(isPretty) x.asJson.toString else x.asJson.noSpaces)(result)
   private def prettyResponse[A : Encoder](isPrettyValidated: Option[ValidatedNel[ParseFailure, Boolean]])(result: Result[A]): F[Response[F]] =
@@ -38,22 +40,22 @@ class Services[F[_] : Concurrent](implicit db: Database[F]) {
       prettyResponse(_)(result)
     ))
 
-  lazy val articleByTitle = HttpRoutes.of[F] {
+  val articleByTitle = HttpRoutes.of[F] {
     case GET -> Root / "wiki" / title :? PrettyParam(isPretty) =>
       db.findArticle(title).flatMap(prettyResponse[Article](isPretty))
   }
 
-  lazy val articlesByCategory = HttpRoutes.of[F] {
+  val articlesByCategory = HttpRoutes.of[F] {
     case GET -> Root / "wiki" :? CategoryParam(category) :? PrettyParam(isPretty) =>
       db.articlesByCategory(category).flatMap(prettyResponse[Seq[Article]](isPretty))
   }
 
-  lazy val categoryStats = HttpRoutes.of[F] {
+  val categoryStats = HttpRoutes.of[F] {
     case GET -> Root / "categories" =>
       db.categoriesStats.flatMap(response(identity))
   }
 
-  lazy val updateArticle = HttpRoutes.of[F] {
+  val updateArticle = HttpRoutes.of[F] {
     case req @ POST -> Root / "wiki" / title =>
       for {
         updateInfo <- req.as[Update]
@@ -62,12 +64,12 @@ class Services[F[_] : Concurrent](implicit db: Database[F]) {
       } yield resp
   }
 
-  lazy val removeArticle = HttpRoutes.of[F] {
+  val removeArticle = HttpRoutes.of[F] {
     case DELETE -> Root / "wiki" / title =>
       db.removeArticle(title).flatMap(response(identity))
   }
 
-  lazy val createArticle = HttpRoutes.of[F] {
+  val createArticle = HttpRoutes.of[F] {
     case req @ PUT -> Root / "wiki" =>
       for {
         createInfo <- req.as[Create]
@@ -83,6 +85,7 @@ object Services {
 
   private case class SimplifiedArticle(auxiliary_text: Seq[String], category: Seq[String], create_timestamp: Long, timestamp: Long)
 
+  // Энкодер "полных" объектов Article в "неполные" объекты SimplifiedArticle, которые возвращаются в ответах HTTP
   implicit lazy val simplifiedJsonEncoder: Encoder[Article] =
     Encoder[SimplifiedArticle].contramap(q => SimplifiedArticle(q.auxiliaryText, q.category, q.createTimestamp.getTime, q.timestamp.getTime))
 

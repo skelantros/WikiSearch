@@ -3,15 +3,13 @@ package ru.skelantros.wikisearch.db
 import ru.skelantros.wikisearch.Article
 import ru.skelantros.wikisearch.db.Database._
 
+// Трейт, описывающий интерфейс взаимодействия с хранилищем данных
 trait Database[F[_]] {
-  // this method is expected to be case-insensitive
   def findArticle(title: String): F[Result[Article]]
   def articlesByCategory(category: String): F[Result[Seq[Article]]]
   def updateArticle(update: ArticleUpdate): F[Result[Article]]
-  // this method is expected to be case-insensitive
   def removeArticle(title: String): F[Result[Article]]
   def createArticle(create: ArticleCreate): F[Result[Article]]
-
   def categories: F[Result[Seq[String]]]
   def categoriesStats: F[Result[Seq[CategoryStats]]]
 }

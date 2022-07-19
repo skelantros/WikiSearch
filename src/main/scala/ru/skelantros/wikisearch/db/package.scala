@@ -1,5 +1,6 @@
 package ru.skelantros.wikisearch
 
+// В этом пакете-объекте хранятся надстройки над Either, используемые для представления результатов работы с БД
 package object db {
   type Result[A] = Either[DbError, A]
   object Result {

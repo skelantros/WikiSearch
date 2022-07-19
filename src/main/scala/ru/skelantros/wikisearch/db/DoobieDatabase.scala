@@ -9,13 +9,16 @@ import cats.implicits._
 import DoobieQueries._
 import Database._
 
+// Реализация Database[F] на основе БД под управлением Postgres
 class DoobieDatabase[F[_] : MonadCancelThrow](implicit val transactor: Transactor[F]) extends Database[F] {
+  // Функция, преобразующая ConnectionIO в итоговые значения типа Result
   private def processConnection[A, B](behavior: A => Result[B])(x: ConnectionIO[A]): F[Result[B]] =
     x.attempt.map {
       case Left(t) => Result.thr[B](t)
       case Right(x) => behavior(x)
     }.transact(transactor)
 
+  // Запись о статье (может отсутствовать)
   private def articleNoteConn(title: String): ConnectionIO[Option[ArticleNote]] =
     articleByTitleQuery(title).option
 
@@ -40,12 +43,14 @@ class DoobieDatabase[F[_] : MonadCancelThrow](implicit val transactor: Transacto
       } yield articlesBase.indices.map(i => articlesBase(i).toArticle(categories(i), auxTexts(i)))
     )
 
+  // Транзакция, возвращающая ИД категории в БД (если категории нет в справочнике, она ее создает)
   private def findOrCreateCategoryConn(category: String): ConnectionIO[Int] =
     for {
       curIdOpt <- idOfCategoryQuery(category).option
       res <- curIdOpt.fold(createCategoryQuery(category).withUniqueGeneratedKeys[Int]("id"))(_.pure[ConnectionIO])
     } yield res
 
+  // Транзакция, обновляющая существующую статью (т.е. существует строка ArticleNote) на основе объекта ArticleUpdate
   private def updateExistingArticleConn(update: ArticleUpdate, note: ArticleNote): ConnectionIO[Article] =
     for {
       _ <- updateArticleQuery(update).run
