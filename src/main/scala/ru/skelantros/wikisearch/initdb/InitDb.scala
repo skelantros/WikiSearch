@@ -29,7 +29,7 @@ object InitDb extends IOApp {
            else IO.unit
       srcFile = new File(args(0))
       jsons <- parseJsonsFromFile[IO](srcFile)
-      uniqueQuotes = jsons.distinctBy(_.title)
+      uniqueQuotes = jsons.distinctBy(_.title.toLowerCase)
       _ <- IO.println(uniqueQuotes.size)
       _ <- InitDbDoobie.finalConnection2(uniqueQuotes)
     } yield ExitCode.Success

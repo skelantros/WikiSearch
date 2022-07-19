@@ -16,21 +16,21 @@ object DoobieQueries {
   }
 
   def quoteByTitleQuery(title: String): Query0[QuoteNote] =
-    sql"select * from quote where title = $title".query
+    sql"select * from quote where lower(title) = lower($title)".query
 
   def categoriesOfQuoteQuery(title: String): Query0[String] =
     sql"""
          select c.name
          from quote as q join quote_to_category as qc on qc.quote_id = q.id
          join category as c on c.id = qc.category_id
-         where q.title = $title
+         where lower(q.title) = lower($title)
        """.query
 
   def auxTextsOfQuoteQuery(title: String): Query0[String] =
     sql"""
          select aux_text
          from quote as q join auxiliary_text as at on at.quote_id = q.id
-         where q.title = $title
+         where lower(q.title) = lower($title)
          order by at.create_timestamp
        """.query
 
@@ -39,6 +39,6 @@ object DoobieQueries {
          select q.id, q.title, q.create_timestamp, q.update_timestamp, q.wiki, q.language
          from quote as q join quote_to_category as qc on qc.quote_id = q.id
          join category as c on c.id = qc.category_id
-         where c.name = $category
+         where lower(c.name) = lower($category)
        """.query
 }
