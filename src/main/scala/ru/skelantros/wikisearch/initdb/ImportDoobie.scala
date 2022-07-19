@@ -15,14 +15,14 @@ object ImportDoobie {
 
   private def insertArticleQuery(article: Article): Update0 = {
     val Article(ct, t, l, w, _, title, _) = article
-    sql"""insert into quote(title, create_timestamp, update_timestamp, wiki, language)
+    sql"""insert into article(title, create_timestamp, update_timestamp, wiki, language)
           values ($title, $ct, $t, $w, $l)
        """.update
   }
 
   private def insertAuxTextsQuery(article: Article, id: Int): Seq[Update0] =
     article.auxiliaryText.map { text =>
-      sql"""insert into auxiliary_text(quote_id, create_timestamp, aux_text)
+      sql"""insert into auxiliary_text(article_id, create_timestamp, aux_text)
              values ($id, ${Timestamp.from(Instant.now())}, $text)
            """.update
     }
@@ -32,12 +32,12 @@ object ImportDoobie {
 
   private def insertCatsOfArticleQuery(categories: Map[String, Int])(article: Article, id: Int): Seq[Update0] =
     article.category.map { cat =>
-      sql"insert into quote_to_category(quote_id, category_id) values ($id, ${categories(cat)})".update
+      sql"insert into article_to_category(article_id, category_id) values ($id, ${categories(cat)})".update
     }
 
-  private def finalConnection(quotes: Seq[Article]): ConnectionIO[Unit] =
+  private def finalConnection(articles: Seq[Article]): ConnectionIO[Unit] =
     for {
-      qts <- quotes.pure[ConnectionIO]
+      qts <- articles.pure[ConnectionIO]
       categories = qts.flatMap(_.category).distinct
       categoriesIds <- categories.map(insertCatQuery(_).withUniqueGeneratedKeys[Int]("id")).sequence
       categoriesMap = (categories zip categoriesIds).toMap
@@ -47,5 +47,5 @@ object ImportDoobie {
       _ <- articlesWithIds.flatMap((insertCatsOfArticleQuery(categoriesMap) _).tupled).map(_.run).sequence
     } yield ()
 
-  def apply(quotes: Seq[Article]): IO[Unit] = finalConnection(quotes).transact[IO](transactor)
+  def apply(articles: Seq[Article]): IO[Unit] = finalConnection(articles).transact[IO](transactor)
 }

@@ -25,12 +25,12 @@ object DoobieQueries {
   }
 
   def articleByTitleQuery(title: String): Query0[ArticleNote] =
-    sql"select * from quote where lower(title) = lower($title)".query
+    sql"select * from article where lower(title) = lower($title)".query
 
   def categoriesOfArticleQuery(title: String): Query0[String] =
     sql"""
          select c.name
-         from quote as q join quote_to_category as qc on qc.quote_id = q.id
+         from article as q join article_to_category as qc on qc.article_id = q.id
          join category as c on c.id = qc.category_id
          where lower(q.title) = lower($title)
        """.query
@@ -38,7 +38,7 @@ object DoobieQueries {
   def auxTextsOfArticleQuery(title: String): Query0[String] =
     sql"""
          select aux_text
-         from quote as q join auxiliary_text as at on at.quote_id = q.id
+         from article as q join auxiliary_text as at on at.article_id = q.id
          where lower(q.title) = lower($title)
          order by at.create_timestamp
        """.query
@@ -46,7 +46,7 @@ object DoobieQueries {
   def articlesByCategoryQuery(category: String): Query0[ArticleNote] =
     sql"""
          select q.id, q.title, q.create_timestamp, q.update_timestamp, q.wiki, q.language
-         from quote as q join quote_to_category as qc on qc.quote_id = q.id
+         from article as q join article_to_category as qc on qc.article_id = q.id
          join category as c on c.id = qc.category_id
          where lower(c.name) = lower($category)
        """.query
@@ -62,8 +62,8 @@ object DoobieQueries {
 
   def categoriesStatsQuery: Query0[CategoryStats] =
     sql"""
-         select c.name, count(qtc.quote_id) from
-         category as c join quote_to_category as qtc on c.id = qtc.category_id
+         select c.name, count(qtc.article_id) from
+         category as c join article_to_category as qtc on c.id = qtc.category_id
          group by c.name
        """.query
 
@@ -79,35 +79,35 @@ object DoobieQueries {
 
     if(updates.nonEmpty)
       sql"""
-            update quote
+            update article
             set ${updates.intercalate(fr",")}
             where lower(title) = lower($oldTitle)
          """.update
-    else sql"update quote set title = '' where 0 = 1".update
+    else sql"update article set title = '' where 0 = 1".update
   }
 
   def insertAuxTextsQuery(auxiliaryText: String, id: Int): Update0 =
-      sql"""insert into auxiliary_text(quote_id, create_timestamp, aux_text)
+      sql"""insert into auxiliary_text(article_id, create_timestamp, aux_text)
              values ($id, $now, $auxiliaryText)
            """.update
 
   def updateArticleTextQueries(id: Int, auxTexts: Seq[String]): Seq[Update0] =
-    sql"delete from auxiliary_text where quote_id = $id".update +: auxTexts.map(insertAuxTextsQuery(_, id))
+    sql"delete from auxiliary_text where article_id = $id".update +: auxTexts.map(insertAuxTextsQuery(_, id))
 
 
   def addCategoryQuery(category: String): Update0 =
     sql"insert into category(name) values ($category)".update
 
   def updateArticleCategoryQueries(id: Int, categoriesIds: Seq[Int]): Seq[Update0] =
-    sql"delete from quote_to_category where quote_id = $id".update +:
-    categoriesIds.map(catId => sql"insert into quote_to_category(quote_id, category_id) values ($id, $catId)".update)
+    sql"delete from article_to_category where article_id = $id".update +:
+    categoriesIds.map(catId => sql"insert into article_to_category(article_id, category_id) values ($id, $catId)".update)
 
   def updateArticleTimestampQuery(title: String): Update0 =
-    sql"update quote set update_timestamp = $now where lower(title) = lower($title)".update
+    sql"update article set update_timestamp = $now where lower(title) = lower($title)".update
 
   def deleteArticleQuery(title: String): Update0 =
-    sql"delete from quote where title = $title".update
+    sql"delete from article where title = $title".update
 
   def createArticleQuery(title: String, wiki: String, language: String): Update0 =
-    sql"insert into quote(title, wiki, language, create_timestamp, update_timestamp) values ($title, $wiki, $language, $now, $now)".update
+    sql"insert into article(title, wiki, language, create_timestamp, update_timestamp) values ($title, $wiki, $language, $now, $now)".update
 }
