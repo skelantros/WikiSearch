@@ -7,6 +7,7 @@ import ru.skelantros.wikisearch.Quote
 import doobie.implicits._
 import cats.implicits._
 import DoobieQueries._
+import DbQuote._
 
 class DoobieDbQuote[F[_] : MonadCancelThrow](implicit val transactor: Transactor[F]) extends DbQuote[F] {
   private def processConnection[A, B](behavior: A => Result[B])(x: ConnectionIO[A]): F[Result[B]] =
@@ -38,15 +39,15 @@ class DoobieDbQuote[F[_] : MonadCancelThrow](implicit val transactor: Transactor
       } yield quotesBase.indices.map(i => quotesBase(i).toQuote(categories(i), auxTexts(i)))
     )
 
-  override def updateQuote(quote: Quote): F[Result[Quote]] = ???
-
-  override def removeQuote(quote: Quote): F[Result[Quote]] = ???
+  override def updateQuote(update: QuoteUpdate): F[Result[Quote]] = ???
 
   override def removeQuote(title: String): F[Result[Quote]] = ???
+
+  override def createQuote(create: QuoteCreate): F[Result[Quote]] = ???
 
   override def categories: F[Result[Seq[String]]] =
     processConnection[Seq[String], Seq[String]](Result(_))(categoriesQuery.to[Seq])
 
-  override def categoriesStats: F[Result[Seq[DbQuote.CategoryStats]]] =
-    processConnection[Seq[DbQuote.CategoryStats], Seq[DbQuote.CategoryStats]](Result(_))(categoriesStatsQuery.to[Seq])
+  override def categoriesStats: F[Result[Seq[CategoryStats]]] =
+    processConnection[Seq[CategoryStats], Seq[CategoryStats]](Result(_))(categoriesStatsQuery.to[Seq])
 }
